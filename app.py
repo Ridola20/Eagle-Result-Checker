@@ -16,7 +16,7 @@ DATABASE = './Results.db'
 # Initialize Flask app
 app = Flask(__name__)
 
-app.config['SECRET_KEY'] = '1234567890'
+app.config['SECRET_KEY'] = '**********'
 
 # Function to get database connection
 def get_db():
@@ -202,7 +202,7 @@ def upload_result():
                 def send_simple_message():
                     response = requests.post(
                         "https://api.mailgun.net/v3/sandboxae7349da4b674887beddb068e4b9f714.mailgun.org/messages",
-                        auth=("api", "33f678ed4aa713e446d0af703e615dd0-2e68d0fb-c5597279"),
+                        auth=("api", "******************************-********-********"),
                         data={"from": "Excited User <mailgun@sandboxae7349da4b674887beddb068e4b9f714.mailgun.org>",
                             "to": recipients, #"YOU@sandboxae7349da4b674887beddb068e4b9f714.mailgun.org"
                             "subject": subject,
