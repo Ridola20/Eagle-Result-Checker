@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Result - Eagle Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.2/cdn.min.js" defer></script>
+</head>
+<body>
+
+    <header class="bg-blue-600 text-white shadow-md">
+        <div class="container mx-auto flex items-center justify-between px-6 py-4">
+            <div class="text-2xl font-bold flex items-center">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Eagle Schools Logo" class="h-10 w-10 mr-3 bg-white py-1 px-1 rounded-full">
+                <span>Eagle Schools</span>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="{{ url_for('index') }}" class="hover:text-blue-300">Home</a>
+                <a href="{{ url_for('results') }}" class="hover:text-blue-300">View Results</a>
+                <a href="{{ url_for('logout') }}" class="hover:text-blue-300">Logout</a>
+            </nav>
+            <button class="md:hidden text-white focus:outline-none" @click="mobileMenuOpen = !mobileMenuOpen">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                </svg>
+            </button>
+        </div>
+        <div x-data="{ mobileMenuOpen: false }" x-show="mobileMenuOpen" class="md:hidden">
+            <nav class="bg-blue-700 px-6 py-4">
+                <a href="{{ url_for('index') }}" class="block text-white py-2">Home</a>
+                <a href="{{ url_for('results') }}" class="block text-white py-2">View Results</a>
+                <a href="{{ url_for('logout') }}" class="hover:text-blue-300">Logout</a>
+            </nav>
+        </div>
+    </header>
+
+
+    <section class="bg-gray-100 min-h-screen flex items-center justify-center">
+        <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+            <h1 class="text-2xl font-bold text-gray-800 text-center mb-6">Upload Student Result</h1>
+    
+            <form action="/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
+                <div>
+                    <label for="student_name" class="block text-sm font-medium text-gray-700">Student Name</label>
+                    <input 
+                        type="text" 
+                        id="student_name" 
+                        name="student_name" 
+                        required 
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Enter student name"
+                    >
+                </div>
+    
+                <div>
+                    <label for="exam_number" class="block text-sm font-medium text-gray-700">Exam Number</label>
+                    <input 
+                        type="text" 
+                        id="exam_number" 
+                        name="exam_number" 
+                        required 
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Enter exam number"
+                    >
+                </div>
+    
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <input 
+                        type="email" 
+                        id="email" 
+                        name="email" 
+                        required 
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        placeholder="Enter email address"
+                    >
+                </div>
+    
+                <div>
+                    <label for="result_blob" class="block text-sm font-medium text-gray-700">Upload Result (PDF)</label>
+                    <input 
+                        type="file" 
+                        id="result_blob" 
+                        name="result_blob" 
+                        accept="application/pdf" 
+                        required 
+                        class="mt-1 block w-full text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+    
+                <div x-data="{ show: false }">
+                    <label for="staff_passkey" class="block text-sm font-medium text-gray-700">Staff Access Key</label>
+                    <div class="relative mt-1">
+                        <input 
+                            type="text" 
+                            id="staff_passkey" 
+                            name="staff_passkey" 
+                            required 
+                            class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                            placeholder="Enter staff access key"
+                            :type="show ? 'text' : 'password'"
+                        >
+                        <button 
+                            type="button" 
+                            class="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                            @click="show = !show"
+                        >
+                            <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-.257.802-.572 1.562-.938 2.266m-2.195 2.883A9.956 9.956 0 0112 19c-4.477 0-8.268-2.943-9.542-7-.257-.802-.572-1.562-.938-2.266" />
+                            </svg>
+                            <svg x-show="show" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-.257.802-.572 1.562-.938 2.266M15.732 15.732L17.732 17.732" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+    
+                <button 
+                    type="submit" 
+                    class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none"
+                >
+                    Upload
+                </button>
+            </form>
+        </div>
+    </section>
+</body>
+</html>
