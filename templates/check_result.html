@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Your Result - Eagle Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <header class="bg-blue-600 text-white shadow-md">
+        <div class="container mx-auto flex items-center justify-between px-6 py-4">
+            <div class="text-2xl font-bold flex items-center">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Eagle Schools Logo" class="h-10 w-10 mr-3 bg-white py-1 px-1 rounded-full">
+                <span>Eagle Schools</span>
+            </div>
+            <nav class="hidden md:flex space-x-6">
+                <a href="{{ url_for('index') }}" class="hover:text-blue-300">Home</a>
+                <a href="{{ url_for('student_check_result') }}" class="hover:text-blue-300">Check Result</a>
+            </nav>
+        </div>
+    </header>
+
+    <section class="min-h-screen flex items-center justify-center py-12">
+        <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
+            <h2 class="text-2xl font-bold text-gray-800 text-center mb-6">Check Your Result</h2>
+            
+            {% if error %}
+                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                    {{ error }}
+                </div>
+            {% endif %}
+
+            <form method="POST" class="space-y-4">
+                <div>
+                    <label for="exam_number" class="block text-sm font-medium text-gray-700">Exam Number</label>
+                    <input 
+                        type="text" 
+                        id="exam_number" 
+                        name="exam_number" 
+                        required 
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter your exam number"
+                    >
+                </div>
+
+                <div>
+                    <label for="access_key" class="block text-sm font-medium text-gray-700">Access Key</label>
+                    <input 
+                        type="text" 
+                        id="access_key" 
+                        name="access_key" 
+                        required 
+                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="Enter your access key"
+                    >
+                </div>
+
+                <button 
+                    type="submit" 
+                    class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
+                >
+                    Check Result
+                </button>
+            </form>
+
+            <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                <h3 class="font-semibold text-blue-800">How to get your access key?</h3>
+                <p class="text-sm text-blue-700 mt-2">
+                    Your access key was sent to your email when your result was uploaded. 
+                    If you lost it, please contact your school administrator.
+                </p>
+            </div>
+        </div>
+    </section>
+</body>
+</html>

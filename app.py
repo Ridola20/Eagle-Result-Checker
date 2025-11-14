@@ -38,7 +38,7 @@ def init_db():
     with app.app_context():
         conn = get_db()
         cursor = conn.cursor()
-        # Create the table if it does not exist
+        # Create the results table if it does not exist
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +48,20 @@ def init_db():
                 access_key TEXT NOT NULL
             )
         """)
+        
+        # Create staff passkey table
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS staff_passkey (
+                id INTEGER PRIMARY KEY,
+                passkey TEXT NOT NULL
+            )
+        """)
+        
+        # Insert default passkey if not exists
+        cursor.execute("SELECT * FROM staff_passkey WHERE id = 1")
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO staff_passkey (id, passkey) VALUES (1, 'admin123')")
+        
         conn.commit()
         cursor.close()
 
@@ -86,6 +100,7 @@ def upload_result():
         exam_number = data.get('exam_number')
         passkey = data.get('staff_passkey')  # Get the passkey from the form
         result_file = request.files.get('result_blob')
+        email = data.get('email')
         random_string = generate_random_number()
 
         if not student_name or not exam_number or not result_file or not passkey:
@@ -124,10 +139,12 @@ def upload_result():
             cursor.close()
 
             try:
-            
                 # Email content
                 subject = f"Dear {student_name}, your result has been uploaded"
-                recipients = ["ridwansanusiessential@gmail.com"] 
+                
+                # Format recipients properly for Brevo API
+                recipients = [{"email": "eagleschools@gmail.com"}, {"email": email}]
+                
                 message_body = f"""
                 <!DOCTYPE html>
                 <html>
@@ -168,6 +185,11 @@ def upload_result():
                             font-size: 18px;
                             color: #4CAF50;
                             font-weight: bold;
+                            background-color: #f8f9fa;
+                            padding: 10px;
+                            border-radius: 5px;
+                            text-align: center;
+                            margin: 15px 0;
                         }}
                         .footer {{
                             text-align: center;
@@ -181,7 +203,7 @@ def upload_result():
                 <body>
                     <div class="email-container">
                         <div class="header">
-                            Student Results Portal
+                            Eagle Schools - Student Results Portal
                         </div>
                         <div class="content">
                             <p>Dear {student_name},</p>
@@ -189,34 +211,58 @@ def upload_result():
                             <p>Your result access key is:</p>
                             <p class="access-key">{random_string}</p>
                             <p>Please use this access key to view or download your result securely from the portal.</p>
+                            <p><strong>Exam Number:</strong> {exam_number}</p>
                             <p>Thank you for using our service!</p>
                         </div>
                         <div class="footer">
-                            &copy; {2024} Student Results Portal. All rights reserved.
+                            &copy; 2024 Eagle Schools. All rights reserved.
                         </div>
                     </div>
                 </body>
                 </html>
                 """
                 
-                def send_simple_message():
+                def send_simple_message(to_recipients: list, subject: str, html: str) -> None:
+                    """Send email via Brevo API"""
+                    payload = {
+                        "sender": {
+                            "name": "Eagle Schools Results",
+                            "email": "funkesanusi8@gmail.com"
+                        },
+                        "to": to_recipients,
+                        "subject": subject,
+                        "htmlContent": html,
+                    }
+                    
+                    # Replace with your actual Brevo API key
+                    api_key1 = "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"
+                    # api_key2 = "xkeysib-0c6f3f3f1e5f4e8f6d7e8c9b0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8g9h-ABCDEFGHIJKLMNOpqrstuvwxyz123456"
+                    
                     response = requests.post(
-                        "https://api.mailgun.net/v3/sandboxae7349da4b674887beddb068e4b9f714.mailgun.org/messages",
-                        auth=("api", "******************************-********-********"),
-                        data={"from": "Excited User <mailgun@sandboxae7349da4b674887beddb068e4b9f714.mailgun.org>",
-                            "to": recipients, #"YOU@sandboxae7349da4b674887beddb068e4b9f714.mailgun.org"
-                            "subject": subject,
-                            "text": "Testing some Mailgun awesomeness!"})
-                    print(f"Status Code: {response.status_code}")
-                    print(f"Response: {response.text}")
-                    return response
+                        "https://api.brevo.com/v3/smtp/email",
+                        headers={
+                            "accept": "application/json",
+                            "api-key": api_key1,
+                            "content-type": "application/json",
+                        },
+                        json=payload,
+                        timeout=30,
+                    )
+                    
+                    # Check if the request was successful
+                    if response.status_code == 201:
+                        print("Email sent successfully!")
+                    else:
+                        print(f"Failed to send email. Status: {response.status_code}, Response: {response.text}")
+                        raise Exception(f"Email API error: {response.text}")
 
-                send_simple_message()
-                
-                print("Emails sent successfully!")
+                # Send the email
+                send_simple_message(recipients, subject, message_body)
+                print("Result uploaded and email sent successfully!")
 
             except Exception as e:
-                print(f"Failed to send email: {str(e)}")
+                print(f"Email sending failed: {str(e)}")
+                # Don't return error here, just log it since the result was uploaded successfully
 
             # Redirect to the results page
             return redirect(url_for('results'))
@@ -283,10 +329,109 @@ def logout():
     session.pop('exam_number', None)
     return redirect(url_for('login'))  # Redirect to the login page
 
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    cursor = get_db().cursor()
+    try:
+        # Get total students count
+        cursor.execute("SELECT COUNT(*) FROM results")
+        total_results = cursor.fetchone()[0]
+        
+        # Get recent activity
+        cursor.execute("SELECT MAX(id) FROM results")
+        last_upload_id = cursor.fetchone()[0]
+        
+        return render_template('dashboard.html', 
+                             total_students=total_results,
+                             total_results=total_results,
+                             last_upload=f"Result ID: {last_upload_id}" if last_upload_id else "No uploads yet")
+    except Exception as e:
+        return render_template('dashboard.html', error=str(e))
+    finally:
+        cursor.close()
+
+@app.route('/student/result', methods=['GET', 'POST'])
+def student_check_result():
+    if request.method == 'POST':
+        exam_number = request.form.get('exam_number')
+        access_key = request.form.get('access_key')
+        
+        cursor = get_db().cursor()
+        try:
+            cursor.execute("SELECT * FROM results WHERE exam_number=? AND access_key=?", (exam_number, access_key))
+            result = cursor.fetchone()
+            
+            if result:
+                return render_template('student_result.html', 
+                                     student_name=result[1],
+                                     exam_number=result[2],
+                                     result_id=result[0],
+                                     access_key=access_key)
+            else:
+                return render_template('check_result.html', 
+                                     error="Invalid exam number or access key")
+        except Exception as e:
+            return render_template('check_result.html', error=str(e))
+        finally:
+            cursor.close()
+    
+    return render_template('check_result.html')
+
+@app.route('/bulk_upload', methods=['GET', 'POST'])
+def bulk_upload():
+    if request.method == 'POST':
+        # Handle bulk CSV upload
+        if 'csv_file' not in request.files:
+            return render_template('bulk_upload.html', error="No file selected")
+        
+        csv_file = request.files['csv_file']
+        if csv_file.filename == '':
+            return render_template('bulk_upload.html', error="No file selected")
+        
+        if csv_file and csv_file.filename.endswith('.csv'):
+            # Process CSV file
+            try:
+                import csv
+                import io
+                
+                stream = io.StringIO(csv_file.stream.read().decode("UTF8"), newline=None)
+                csv_reader = csv.DictReader(stream)
+                
+                success_count = 0
+                error_count = 0
+                
+                for row in csv_reader:
+                    try:
+                        # Process each row
+                        cursor = get_db().cursor()
+                        random_string = generate_random_number()
+                        
+                        cursor.execute("""
+                            INSERT OR REPLACE INTO results 
+                            (student_name, exam_number, result_blob, access_key) 
+                            VALUES (?, ?, ?, ?)
+                        """, (row['student_name'], row['exam_number'], b'', random_string))
+                        
+                        get_db().commit()
+                        success_count += 1
+                    except Exception as e:
+                        error_count += 1
+                        print(f"Error processing row: {e}")
+                    finally:
+                        cursor.close()
+                
+                return render_template('bulk_upload.html', 
+                                     success=f"Successfully processed {success_count} records. Errors: {error_count}")
+                
+            except Exception as e:
+                return render_template('bulk_upload.html', error=f"Error processing CSV: {str(e)}")
+    
+    return render_template('bulk_upload.html')
+
 # Initialize the database and start the app
 if __name__ == "__main__":
-    # Check if database exists, initialize if not
-    # if not os.path.exists(DATABASE):
-    print("Initializing the database...")
     init_db()
     app.run(debug=True)
