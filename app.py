@@ -2,21 +2,58 @@ from flask import Flask, request, jsonify, render_template, g, redirect, url_for
 import sqlite3
 import requests
 import random
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 def generate_random_number():
     # Generate a random 6-digit number
     random_number = random.randint(100000, 999999)
-    
-    # Return as a string
     return str(random_number)
 
-# Database file path
-DATABASE = './Results.db'
+# Use /tmp directory for Vercel, local for development
+DATABASE = '/tmp/Results.db' if 'VERCEL' in os.environ else './Results.db'
 
 # Initialize Flask app
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'fallback-secret-key-change-in-production')
 
-app.config['SECRET_KEY'] = '**********'
+def send_simple_message(to_recipients: list, subject: str, html: str) -> None:
+    """Send email via Brevo API"""
+    api_key = os.getenv('BREVO_API_KEY')
+    
+    if not api_key:
+        print("BREVO_API_KEY not found in environment variables")
+        return
+    
+    payload = {
+        "sender": {
+            "name": "Eagle Schools Results",
+            "email": "funkesanusi8@gmail.com"
+        },
+        "to": to_recipients,
+        "subject": subject,
+        "htmlContent": html,
+    }
+    
+    response = requests.post(
+        "https://api.brevo.com/v3/smtp/email",
+        headers={
+            "accept": "application/json",
+            "api-key": api_key,
+            "content-type": "application/json",
+        },
+        json=payload,
+        timeout=30,
+    )
+    
+    # Check if the request was successful
+    if response.status_code == 201:
+        print("Email sent successfully!")
+    else:
+        print(f"Failed to send email. Status: {response.status_code}, Response: {response.text}")
 
 # Function to get database connection
 def get_db():
@@ -60,10 +97,16 @@ def init_db():
         # Insert default passkey if not exists
         cursor.execute("SELECT * FROM staff_passkey WHERE id = 1")
         if not cursor.fetchone():
-            cursor.execute("INSERT INTO staff_passkey (id, passkey) VALUES (1, 'admin123')")
+            cursor.execute("INSERT INTO staff_passkey (id, passkey) VALUES (1, ?)", 
+                          (os.getenv('DEFAULT_PASSKEY', 'admin123'),))
         
         conn.commit()
         cursor.close()
+
+# Initialize database before first request
+@app.before_request
+def initialize_database():
+    init_db()
 
 # Home route
 @app.route("/")
@@ -85,8 +128,8 @@ def results():
             # Display all results if no search query
             cursor.execute("SELECT * FROM results")
         
-        results = cursor.fetchall()
-        return render_template('view_users.html', users=results, search_query=search_query)
+        results_data = cursor.fetchall()
+        return render_template('view_users.html', users=results_data, search_query=search_query)
     except Exception as e:
         return render_template('view_users.html', error=str(e))
     finally:
@@ -111,14 +154,11 @@ def upload_result():
             
             cursor.execute("SELECT * FROM staff_passkey")
             valid_passkey = cursor.fetchone()[1]
-            print(valid_passkey)
 
             if not valid_passkey:
                 return jsonify({'error': 'Invalid passkey'}), 403
             elif str(passkey) != str(valid_passkey):
                 return jsonify({'error': 'Invalid passkey'}), 403
-            else:
-                pass
             
             # Convert file to binary
             result_blob = result_file.read()
@@ -222,41 +262,7 @@ def upload_result():
                 </html>
                 """
                 
-                def send_simple_message(to_recipients: list, subject: str, html: str) -> None:
-                    """Send email via Brevo API"""
-                    payload = {
-                        "sender": {
-                            "name": "Eagle Schools Results",
-                            "email": "funkesanusi8@gmail.com"
-                        },
-                        "to": to_recipients,
-                        "subject": subject,
-                        "htmlContent": html,
-                    }
-                    
-                    # Replace with your actual Brevo API key
-                    api_key1 = "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"
-                    # api_key2 = "xkeysib-0c6f3f3f1e5f4e8f6d7e8c9b0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8g9h-ABCDEFGHIJKLMNOpqrstuvwxyz123456"
-                    
-                    response = requests.post(
-                        "https://api.brevo.com/v3/smtp/email",
-                        headers={
-                            "accept": "application/json",
-                            "api-key": api_key1,
-                            "content-type": "application/json",
-                        },
-                        json=payload,
-                        timeout=30,
-                    )
-                    
-                    # Check if the request was successful
-                    if response.status_code == 201:
-                        print("Email sent successfully!")
-                    else:
-                        print(f"Failed to send email. Status: {response.status_code}, Response: {response.text}")
-                        raise Exception(f"Email API error: {response.text}")
-
-                # Send the email
+                # Send the email using the function defined above
                 send_simple_message(recipients, subject, message_body)
                 print("Result uploaded and email sent successfully!")
 
