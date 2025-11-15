@@ -56,7 +56,7 @@
                 <!-- Desktop Navigation -->
                 <nav class="hidden md:flex space-x-8">
                     <a href="{{ url_for('index') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Home</a>
-                    <a href="{{ url_for('results') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">View Results</a>
+                    <a href="{{ url_for('upload_result') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Add Results</a>
                     <a href="{{ url_for('login') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Login</a>
                     <a href="{{ url_for('logout') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Logout</a>
                 
@@ -75,7 +75,7 @@
         <div x-show="mobileMenuOpen" class="md:hidden bg-blue-700 border-t border-blue-600" x-transition>
             <nav class="px-6 py-4 space-y-4">
                 <a href="{{ url_for('index') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">Home</a>
-                <a href="{{ url_for('results') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">View Results</a>
+                <a href="{{ url_for('upload_result') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">Add Results</a>
                 <a href="{{ url_for('login') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">Login</a>
                 <a href="{{ url_for('logout') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">Logout</a>
             </nav>
