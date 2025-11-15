@@ -4,6 +4,7 @@ import requests
 import random
 import os
 from dotenv import load_dotenv
+from flask import send_from_directory
 
 # Load environment variables
 load_dotenv()
@@ -523,6 +524,18 @@ def bulk_upload():
                 return render_template('bulk_upload.html', error=f"Error processing CSV: {str(e)}")
     
     return render_template('bulk_upload.html')
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory('static', 'manifest.json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory('static', 'sw.js'), 200, {'Content-Type': 'application/javascript'}
+
+@app.route('/offline')
+def offline():
+    return render_template('offline.html')
 
 # Initialize the database and start the app
 if __name__ == "__main__":

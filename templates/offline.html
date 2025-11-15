@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - Eagle Schools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="manifest" href="/static/manifest.json">
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+    <div class="text-center">
+        <div class="bg-white p-8 rounded-lg shadow-md max-w-md">
+            <div class="text-6xl mb-4">📱</div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">You're Offline</h1>
+            <p class="text-gray-600 mb-6">Please check your internet connection and try again.</p>
+            <button onclick="window.location.reload()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Retry
+            </button>
+        </div>
+    </div>
+</body>
+</html>

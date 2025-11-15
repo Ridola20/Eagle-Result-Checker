@@ -1,6 +1,10 @@
-const CACHE_NAME = 'eagle-schools-v1.0.0';
+const CACHE_NAME = 'eagle-schools-v1.0.1';
+const API_CACHE_NAME = 'eagle-schools-api-v1';
+
+// URLs to cache immediately
 const urlsToCache = [
   '/',
+  '/offline',
   '/static/style.css',
   '/static/logo.png',
   '/static/icon-192x192.png',
@@ -10,24 +14,21 @@ const urlsToCache = [
 
 // Install event
 self.addEventListener('install', (event) => {
-  console.log('Service Worker installed');
+  console.log('Service Worker installing');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
-      })
+      .then((cache) => cache.addAll(urlsToCache))
   );
 });
 
 // Activate event
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker activated');
+  console.log('Service Worker activating');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (![CACHE_NAME, API_CACHE_NAME].includes(cacheName)) {
             console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -35,15 +36,53 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
+  return self.clients.claim();
 });
 
-// Fetch event
+// Fetch event with network-first strategy for API, cache-first for assets
 self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // API requests - network first
+  if (url.pathname.startsWith('/api/')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Cache successful API responses
+          if (response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(API_CACHE_NAME)
+              .then((cache) => cache.put(request, responseClone));
+          }
+          return response;
+        })
+        .catch(() => {
+          // Fallback to cache when offline
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // HTML pages - network first
+  if (request.headers.get('Accept')?.includes('text/html')) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME)
+            .then((cache) => cache.put(request, responseClone));
+          return response;
+        })
+        .catch(() => caches.match(request) || caches.match('/offline'))
+    );
+    return;
+  }
+
+  // Static assets - cache first
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        return response || fetch(event.request);
-      })
+    caches.match(request)
+      .then((response) => response || fetch(request))
   );
 });

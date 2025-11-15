@@ -6,127 +6,196 @@
     <title>Upload Result - Eagle Schools</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="shortcut icon" type="image/png" href="{{ url_for('static', filename='logo.png') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.2/cdn.min.js" defer></script>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#2563eb"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Eagle Results">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logo.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    
+    <style>
+        .form-input {
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .file-upload {
+            border: 2px dashed #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .file-upload:hover {
+            border-color: #2563eb;
+            background-color: #f8faff;
+        }
+    </style>
 </head>
-<body>
-
-    <header class="bg-blue-600 text-white shadow-md">
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <header class="bg-blue-600 text-white shadow-lg">
         <div class="container mx-auto flex items-center justify-between px-6 py-4">
             <div class="text-2xl font-bold flex items-center">
-                <img src="{{ url_for('static', filename='logo.png') }}" alt="Eagle Schools Logo" class="h-10 w-10 mr-3 bg-white py-1 px-1 rounded-full">
-                <span>Eagle Schools</span>
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Eagle Schools Logo" class="h-12 w-12 mr-3 bg-white p-1">
+                <span class="bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">Eagle Schools</span>
             </div>
-            <nav class="hidden md:flex space-x-6">
-                <a href="{{ url_for('index') }}" class="hover:text-blue-300">Home</a>
-                <a href="{{ url_for('results') }}" class="hover:text-blue-300">View Results</a>
-                <a href="{{ url_for('logout') }}" class="hover:text-blue-300">Logout</a>
-            </nav>
-            <button class="md:hidden text-white focus:outline-none" @click="mobileMenuOpen = !mobileMenuOpen">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
-                </svg>
-            </button>
-        </div>
-        <div x-data="{ mobileMenuOpen: false }" x-show="mobileMenuOpen" class="md:hidden">
-            <nav class="bg-blue-700 px-6 py-4">
-                <a href="{{ url_for('index') }}" class="block text-white py-2">Home</a>
-                <a href="{{ url_for('results') }}" class="block text-white py-2">View Results</a>
-                <a href="{{ url_for('logout') }}" class="hover:text-blue-300">Logout</a>
-            </nav>
+            <div class="flex items-center space-x-4">
+                <button id="installButton" class="bg-blue-400 text-white px-4 py-2 font-semibold hidden install-btn">
+                    📱 Install App
+                </button>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="{{ url_for('index') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Home</a>
+                    <a href="{{ url_for('results') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">View Results</a>
+                    <a href="{{ url_for('logout') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Logout</a>
+                </nav>
+            </div>
         </div>
     </header>
 
-
-    <section class="bg-gray-100 min-h-screen flex items-center justify-center">
-        <div class="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
-            <h1 class="text-2xl font-bold text-gray-800 text-center mb-6">Upload Student Result</h1>
+    <section class="min-h-screen flex items-center justify-center py-12 px-4">
+        <div class="bg-white shadow-2xl w-full max-w-2xl border border-gray-200">
+            <div class="bg-blue-600 text-white py-6 text-center border-b border-blue-700">
+                <h1 class="text-3xl font-bold">Upload Student Result</h1>
+                <p class="text-blue-100 mt-2">Securely upload and manage student examination results</p>
+            </div>
+            
+            <div class="p-8">
+                <form action="/upload" method="POST" enctype="multipart/form-data" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="student_name" class="block text-sm font-semibold text-gray-700 mb-2">Student Name</label>
+                            <input 
+                                type="text" 
+                                id="student_name" 
+                                name="student_name" 
+                                required 
+                                class="form-input w-full px-4 py-3 bg-gray-50"
+                                placeholder="Enter student full name"
+                            >
+                        </div>
     
-            <form action="/upload" method="POST" enctype="multipart/form-data" class="space-y-4">
-                <div>
-                    <label for="student_name" class="block text-sm font-medium text-gray-700">Student Name</label>
-                    <input 
-                        type="text" 
-                        id="student_name" 
-                        name="student_name" 
-                        required 
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="Enter student name"
-                    >
-                </div>
-    
-                <div>
-                    <label for="exam_number" class="block text-sm font-medium text-gray-700">Exam Number</label>
-                    <input 
-                        type="text" 
-                        id="exam_number" 
-                        name="exam_number" 
-                        required 
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="Enter exam number"
-                    >
-                </div>
-    
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-                    <input 
-                        type="email" 
-                        id="email" 
-                        name="email" 
-                        required 
-                        class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                        placeholder="Enter email address"
-                    >
-                </div>
-    
-                <div>
-                    <label for="result_blob" class="block text-sm font-medium text-gray-700">Upload Result (PDF)</label>
-                    <input 
-                        type="file" 
-                        id="result_blob" 
-                        name="result_blob" 
-                        accept="application/pdf" 
-                        required 
-                        class="mt-1 block w-full text-sm text-gray-700 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                    >
-                </div>
-    
-                <div x-data="{ show: false }">
-                    <label for="staff_passkey" class="block text-sm font-medium text-gray-700">Staff Access Key</label>
-                    <div class="relative mt-1">
-                        <input 
-                            type="text" 
-                            id="staff_passkey" 
-                            name="staff_passkey" 
-                            required 
-                            class="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                            placeholder="Enter staff access key"
-                            :type="show ? 'text' : 'password'"
-                        >
-                        <button 
-                            type="button" 
-                            class="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
-                            @click="show = !show"
-                        >
-                            <svg x-show="!show" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-.257.802-.572 1.562-.938 2.266m-2.195 2.883A9.956 9.956 0 0112 19c-4.477 0-8.268-2.943-9.542-7-.257-.802-.572-1.562-.938-2.266" />
-                            </svg>
-                            <svg x-show="show" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="h-5 w-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-.257.802-.572 1.562-.938 2.266M15.732 15.732L17.732 17.732" />
-                            </svg>
-                        </button>
+                        <div>
+                            <label for="exam_number" class="block text-sm font-semibold text-gray-700 mb-2">Exam Number</label>
+                            <input 
+                                type="text" 
+                                id="exam_number" 
+                                name="exam_number" 
+                                required 
+                                class="form-input w-full px-4 py-3 bg-gray-50"
+                                placeholder="Enter exam number"
+                            >
+                        </div>
                     </div>
-                </div>
     
-                <button 
-                    type="submit" 
-                    class="w-full bg-blue-600 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:outline-none"
-                >
-                    Upload
-                </button>
-            </form>
+                    <div>
+                        <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
+                        <input 
+                            type="email" 
+                            id="email" 
+                            name="email" 
+                            required 
+                            class="form-input w-full px-4 py-3 bg-gray-50"
+                            placeholder="Enter student email address"
+                        >
+                    </div>
+    
+                    <div>
+                        <label for="result_blob" class="block text-sm font-semibold text-gray-700 mb-2">Upload Result (PDF)</label>
+                        <div class="file-upload p-6 text-center bg-gray-50">
+                            <input 
+                                type="file" 
+                                id="result_blob" 
+                                name="result_blob" 
+                                accept="application/pdf" 
+                                required 
+                                class="w-full text-sm text-gray-700"
+                            >
+                            <p class="text-gray-500 text-sm mt-2">Click to upload or drag and drop PDF files only</p>
+                        </div>
+                    </div>
+    
+                    <div x-data="{ show: false }">
+                        <label for="staff_passkey" class="block text-sm font-semibold text-gray-700 mb-2">Staff Access Key</label>
+                        <div class="relative">
+                            <input 
+                                type="text" 
+                                id="staff_passkey" 
+                                name="staff_passkey" 
+                                required 
+                                class="form-input w-full px-4 py-3 bg-gray-50 pr-10"
+                                placeholder="Enter staff access key"
+                                :type="show ? 'text' : 'password'"
+                            >
+                            <button 
+                                type="button" 
+                                class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 hover:text-gray-700"
+                                @click="show = !show"
+                            >
+                                <svg x-show="!show" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-.257.802-.572 1.562-.938 2.266m-2.195 2.883A9.956 9.956 0 0112 19c-4.477 0-8.268-2.943-9.542-7-.257-.802-.572-1.562-.938-2.266"/>
+                                </svg>
+                                <svg x-show="show" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+    
+                    <button 
+                        type="submit" 
+                        class="btn-primary w-full text-white font-bold py-3 text-lg"
+                    >
+                        📤 Upload Result
+                    </button>
+                </form>
+            </div>
         </div>
     </section>
+
+    <!-- PWA Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js');
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        const installButton = document.getElementById('installButton');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            if (installButton) {
+                installButton.style.display = 'block';
+            }
+        });
+
+        if (installButton) {
+            installButton.addEventListener('click', async () => {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        deferredPrompt = null;
+                        installButton.style.display = 'none';
+                    }
+                }
+            });
+        }
+    </script>
 </body>
 </html>
