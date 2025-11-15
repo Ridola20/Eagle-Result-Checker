@@ -25,10 +25,39 @@
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.2/cdn.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.12.0/cdn.min.js" defer></script>
+    
+    <style>
+        .form-input {
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        }
+        .file-upload {
+            border: 2px dashed #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .file-upload:hover {
+            border-color: #2563eb;
+            background-color: #f8faff;
+        }
+    </style>
 </head>
-<body>
-       <header class="bg-blue-600 text-white shadow-lg">
+<body class="bg-gray-50 text-gray-800 font-sans" x-data="{ mobileMenuOpen: false }">
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-lg">
         <div class="container mx-auto flex items-center justify-between px-6 py-4">
             <div class="text-2xl font-bold flex items-center">
                 <img src="{{ url_for('static', filename='logo.png') }}" alt="Eagle Schools Logo" class="h-12 w-12 mr-3 bg-white p-1">
@@ -38,14 +67,17 @@
             <div class="flex items-center space-x-4">
                 <!-- Install Button -->
                 <button id="installButton" class="bg-blue-400 text-white px-4 py-2 font-semibold install-btn">
-                    📱 Install App
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                    </svg>
                 </button>
 
                 <!-- Desktop Navigation -->
                 <nav class="hidden md:flex space-x-8">
                     <a href="{{ url_for('index') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Home</a>
-                    <a href="{{ url_for('upload_result') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Add Result</a>
                     <a href="{{ url_for('results') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">View Results</a>
+                    <a href="{{ url_for('upload_result') }}" class="hover:text-blue-200 font-semibold transition-colors duration-200">Add Result</a>
+                
                 </nav>
 
                 <!-- Mobile Menu Button -->
@@ -61,8 +93,8 @@
         <div x-show="mobileMenuOpen" class="md:hidden bg-blue-700 border-t border-blue-600" x-transition>
             <nav class="px-6 py-4 space-y-4">
                 <a href="{{ url_for('index') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">Home</a>
-                <a href="{{ url_for('upload_result') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">Add Result</a>
                 <a href="{{ url_for('results') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">View Results</a>
+                <a href="{{ url_for('upload_result') }}" class="block text-white py-2 hover:text-blue-200 font-semibold transition-colors" @click="mobileMenuOpen = false">Add Result</a>
             </nav>
         </div>
     </header>

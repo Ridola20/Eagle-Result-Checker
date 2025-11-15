@@ -4,7 +4,6 @@
 .env.production
 
 # Database
-*.db
 *.sqlite3
 
 # Python
