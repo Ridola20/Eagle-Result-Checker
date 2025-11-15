@@ -82,7 +82,8 @@ def init_db():
                 student_name TEXT NOT NULL,
                 exam_number TEXT NOT NULL UNIQUE,
                 result_blob BLOB NOT NULL,
-                access_key TEXT NOT NULL
+                access_key TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -141,7 +142,7 @@ def upload_result():
         data = request.form
         student_name = data.get('student_name')
         exam_number = data.get('exam_number')
-        passkey = data.get('staff_passkey')  # Get the passkey from the form
+        passkey = data.get('staff_passkey')
         result_file = request.files.get('result_blob')
         email = data.get('email')
         random_string = generate_random_number()
@@ -151,6 +152,16 @@ def upload_result():
 
         try:
             cursor = get_db().cursor()
+            
+            # Check daily upload limit
+            cursor.execute("""
+                SELECT COUNT(*) FROM results 
+                WHERE date(created_at) = date('now')
+            """)
+            daily_upload_count = cursor.fetchone()[0]
+            
+            if daily_upload_count >= 149:
+                return jsonify({'error': 'Daily upload limit reached (149 uploads per day). Please try again tomorrow.'}), 429
             
             cursor.execute("SELECT * FROM staff_passkey")
             valid_passkey = cursor.fetchone()[1]
@@ -171,16 +182,17 @@ def upload_result():
                 # Delete the existing result
                 cursor.execute("DELETE FROM results WHERE exam_number = ?", (exam_number,))
 
+            # Insert with timestamp for daily limit tracking
             cursor.execute("""
-                INSERT INTO results (student_name, exam_number, result_blob, access_key)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO results (student_name, exam_number, result_blob, access_key, created_at)
+                VALUES (?, ?, ?, ?, datetime('now'))
             """, (student_name, exam_number, result_blob, random_string))
             get_db().commit()
             cursor.close()
 
             try:
                 # Email content
-                subject = f"Dear {student_name}, your result has been uploaded"
+                subject = f"📚 Your Result is Ready - Eagle Schools"
                 
                 # Format recipients properly for Brevo API
                 recipients = [{"email": "eagleschools@gmail.com"}, {"email": email}]
@@ -191,71 +203,146 @@ def upload_result():
                 <head>
                     <style>
                         body {{
-                            font-family: Arial, sans-serif;
+                            font-family: 'Arial', sans-serif;
                             margin: 0;
                             padding: 0;
-                            background-color: #f4f4f4;
+                            background-color: #f8fafc;
                         }}
                         .email-container {{
                             max-width: 600px;
-                            margin: 20px auto;
+                            margin: 0 auto;
                             background: #ffffff;
-                            padding: 20px;
-                            border-radius: 8px;
-                            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+                            border: 1px solid #e2e8f0;
+                            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                         }}
                         .header {{
-                            background-color: #4CAF50;
+                            background: linear-gradient(135deg, #2563eb, #1d4ed8);
                             color: white;
-                            padding: 10px 20px;
+                            padding: 30px 20px;
                             text-align: center;
-                            font-size: 20px;
+                            border: none;
+                        }}
+                        .header h1 {{
+                            margin: 0;
+                            font-size: 24px;
                             font-weight: bold;
-                            border-radius: 8px 8px 0 0;
                         }}
                         .content {{
-                            padding: 20px;
+                            padding: 30px;
                             line-height: 1.6;
-                            color: #333333;
+                            color: #374151;
                         }}
                         .content p {{
-                            margin: 0 0 10px;
+                            margin: 0 0 15px;
                         }}
                         .access-key {{
-                            font-size: 18px;
-                            color: #4CAF50;
+                            font-size: 20px;
+                            color: #2563eb;
                             font-weight: bold;
-                            background-color: #f8f9fa;
-                            padding: 10px;
-                            border-radius: 5px;
+                            background-color: #dbeafe;
+                            padding: 15px;
                             text-align: center;
-                            margin: 15px 0;
+                            margin: 20px 0;
+                            border: 2px dashed #2563eb;
+                            font-family: 'Courier New', monospace;
+                        }}
+                        .cta-button {{
+                            display: block;
+                            width: 200px;
+                            margin: 25px auto;
+                            padding: 12px 24px;
+                            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+                            color: white;
+                            text-decoration: none;
+                            text-align: center;
+                            font-weight: bold;
+                            border: none;
+                            cursor: pointer;
+                        }}
+                        .cta-button:hover {{
+                            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+                        }}
+                        .info-box {{
+                            background-color: #f0f9ff;
+                            border-left: 4px solid #2563eb;
+                            padding: 15px;
+                            margin: 20px 0;
                         }}
                         .footer {{
                             text-align: center;
-                            padding: 10px;
+                            padding: 20px;
                             font-size: 12px;
-                            color: #888888;
-                            border-top: 1px solid #eeeeee;
+                            color: #6b7280;
+                            background-color: #f8fafc;
+                            border-top: 1px solid #e5e7eb;
+                        }}
+                        .login-link {{
+                            color: #2563eb;
+                            text-decoration: none;
+                            font-weight: bold;
+                        }}
+                        .login-link:hover {{
+                            text-decoration: underline;
+                        }}
+                        .steps {{
+                            margin: 20px 0;
+                        }}
+                        .step {{
+                            margin-bottom: 10px;
+                            padding-left: 20px;
+                            position: relative;
+                        }}
+                        .step:before {{
+                            content: "✓";
+                            position: absolute;
+                            left: 0;
+                            color: #10b981;
+                            font-weight: bold;
                         }}
                     </style>
                 </head>
                 <body>
                     <div class="email-container">
                         <div class="header">
-                            Eagle Schools - Student Results Portal
+                            <h1>🎓 Eagle Schools</h1>
+                            <p>Student Results Portal</p>
                         </div>
+                        
                         <div class="content">
-                            <p>Dear {student_name},</p>
-                            <p>Your result has been successfully uploaded to the portal.</p>
-                            <p>Your result access key is:</p>
-                            <p class="access-key">{random_string}</p>
-                            <p>Please use this access key to view or download your result securely from the portal.</p>
-                            <p><strong>Exam Number:</strong> {exam_number}</p>
-                            <p>Thank you for using our service!</p>
+                            <p>Dear <strong>{student_name}</strong>,</p>
+                            
+                            <p>We're pleased to inform you that your examination result has been successfully uploaded to our secure portal and is now available for viewing.</p>
+                            
+                            <div class="info-box">
+                                <p><strong>Exam Number:</strong> {exam_number}</p>
+                                <p><strong>Access Key:</strong></p>
+                                <div class="access-key">{random_string}</div>
+                            </div>
+                            
+                            <div class="steps">
+                                <p><strong>To access your result:</strong></p>
+                                <div class="step">Visit the Eagle Schools Results Portal</div>
+                                <div class="step">Enter your Exam Number: <strong>{exam_number}</strong></div>
+                                <div class="step">Use the Access Key provided above</div>
+                            </div>
+                            
+                            <a href="https://eagle-result-checker.vercel.app/login" class="cta-button">
+                                View Your Result Now
+                            </a>
+                            
+                            <p>For security reasons, please keep your access key confidential and do not share it with others.</p>
+                            
+                            <p>If you encounter any issues accessing your result, please contact the school administration.</p>
                         </div>
+                        
                         <div class="footer">
-                            &copy; 2024 Eagle Schools. All rights reserved.
+                            <p>&copy; 2024 Eagle Schools. All rights reserved.</p>
+                            <p>This is an automated message. Please do not reply to this email.</p>
+                            <p>Access your result at: 
+                                <a href="https://eagle-result-checker.vercel.app/login" class="login-link">
+                                    https://eagle-result-checker.vercel.app/login
+                                </a>
+                            </p>
                         </div>
                     </div>
                 </body>
