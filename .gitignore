@@ -3,9 +3,6 @@
 .env.local
 .env.production
 
-# Database
-*.sqlite3
-
 # Python
 __pycache__/
 *.py[cod]
