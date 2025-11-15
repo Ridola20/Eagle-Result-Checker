@@ -1,6 +1,6 @@
 {
   "name": "Eagle Schools Result Checker",
-  "short_name": "Eagle Results",
+  "short_name": "Eagle College",
   "description": "Student Results Management System for Eagle Schools",
   "start_url": "/",
   "display": "standalone",
