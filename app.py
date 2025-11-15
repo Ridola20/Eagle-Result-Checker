@@ -72,43 +72,7 @@ def close_connection(exception):
         db.close()
 
 # Function to initialize the database and create the table if it doesn't exist
-def init_db():
-    with app.app_context():
-        conn = get_db()
-        cursor = conn.cursor()
-        # Create the results table if it does not exist
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_name TEXT NOT NULL,
-                exam_number TEXT NOT NULL UNIQUE,
-                result_blob BLOB NOT NULL,
-                access_key TEXT NOT NULL,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Create staff passkey table
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS staff_passkey (
-                id INTEGER PRIMARY KEY,
-                passkey TEXT NOT NULL
-            )
-        """)
-        
-        # Insert default passkey if not exists
-        cursor.execute("SELECT * FROM staff_passkey WHERE id = 1")
-        if not cursor.fetchone():
-            cursor.execute("INSERT INTO staff_passkey (id, passkey) VALUES (1, ?)", 
-                          (os.getenv('DEFAULT_PASSKEY', 'admin123'),))
-        
-        conn.commit()
-        cursor.close()
 
-# Initialize database before first request
-@app.before_request
-def initialize_database():
-    init_db()
 
 # Home route
 @app.route("/")
@@ -539,5 +503,4 @@ def offline():
 
 # Initialize the database and start the app
 if __name__ == "__main__":
-    init_db()
     app.run(debug=True)
