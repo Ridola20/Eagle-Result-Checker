@@ -387,6 +387,9 @@ DBNAME = os.getenv("dbname")
 
 DATABASE_URL = f"postgresql+psycopg2://{USER}:{PASSWORD}@{HOST}:{PORT}/{DBNAME}?sslmode=require"
 
+# Upload daily limit: default 299 to stay below Brevo free-tier 300/day limit
+UPLOAD_DAILY_LIMIT = int(os.getenv("UPLOAD_DAILY_LIMIT", "299"))
+
 # ------------------------------------------------
 # SQLAlchemy ENGINE + SESSION
 # ------------------------------------------------
@@ -526,10 +529,21 @@ def upload_result():
                 return jsonify({"error": "Missing required fields"}), 400
 
             # Validate passkey
-            valid_passkey = db.execute(text("SELECT passkey FROM staff_passkey WHERE id = 1")).scalar()
+            # valid_passkey = db.execute(text("SELECT passkey FROM staff_passkey WHERE id = 1")).scalar()
+            valid_passkey = os.getenv("DEFAULT_PASSKEY", "E4GL35")
             print(valid_passkey)
+            print(passkey)
             if str(passkey) != str(valid_passkey):
                 return jsonify({"error": "Invalid passkey"}), 403
+
+            # Check upload limit for today
+            count = db.execute(text("""
+                SELECT COUNT(*) FROM results
+                WHERE DATE(created_at) = CURRENT_DATE
+            """)).scalar()
+
+            if count >= UPLOAD_DAILY_LIMIT:
+                return jsonify({"error": f"Daily upload limit reached ({UPLOAD_DAILY_LIMIT} per day)."}), 429
 
             # Delete old
             db.execute(text("DELETE FROM results WHERE exam_number = :e"), {"e": exam_number})
@@ -551,7 +565,7 @@ def upload_result():
             message_body = f""" 
                  <!DOCTYPE html> <html> <head> <style> body {{ font-family: 'Arial', sans-serif; margin: 0; padding: 0; background-color: #f8fafc; }} .email-container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }} .header {{ background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; padding: 30px 20px; text-align: center; border: none; }} .header h1 {{ margin: 0; font-size: 24px; font-weight: bold; }} .content {{ padding: 30px; line-height: 1.6; color: #374151; }} .content p {{ margin: 0 0 15px; }} .access-key {{ font-size: 20px; color: #2563eb; font-weight: bold; background-color: #dbeafe; padding: 15px; text-align: center; margin: 20px 0; border: 2px dashed #2563eb; font-family: 'Courier New', monospace; }} .cta-button {{ display: block; width: 200px; margin: 25px auto; padding: 12px 24px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; text-decoration: none; text-align: center; font-weight: bold; border: none; cursor: pointer; }} .cta-button:hover {{ background: linear-gradient(135deg, #1d4ed8, #1e40af); }} .info-box {{ background-color: #f0f9ff; border-left: 4px solid #2563eb; padding: 15px; margin: 20px 0; }} .footer {{ text-align: center; padding: 20px; font-size: 12px; color: #6b7280; background-color: #f8fafc; border-top: 1px solid #e5e7eb; }} .login-link {{ color: #2563eb; text-decoration: none; font-weight: bold; }} .login-link:hover {{ text-decoration: underline; }} .steps {{ margin: 20px 0; }} .step {{ margin-bottom: 10px; padding-left: 20px; position: relative; }} .step:before {{ content: "✓"; position: absolute; left: 0; color: #10b981; font-weight: bold; }} </style> </head> <body> <div class="email-container"> <div class="header"> <h1>🎓 Eagle Schools</h1> <p>Student Results Portal</p> </div> <div class="content"> <p>Dear <strong>{student_name}</strong>,</p> <p>We're pleased to inform you that your examination result has been successfully uploaded to our secure portal and is now available for viewing.</p> <div class="info-box"> <p><strong>Exam Number:</strong> {exam_number}</p> <p><strong>Access Key:</strong></p> <div class="access-key">{random_string}</div> </div> <div class="steps"> <p><strong>To access your result:</strong></p> <div class="step">Visit the Eagle Schools Results Portal</div> <div class="step">Enter your Exam Number: <strong>{exam_number}</strong></div> <div class="step">Use the Access Key provided above</div> </div> <a href="https://eagle-result-checker.vercel.app/login" class="cta-button"> View Your Result Now </a> <p>For security reasons, please keep your access key confidential and do not share it with others.</p> <p>If you encounter any issues accessing your result, please contact the school administration.</p> </div> <div class="footer"> <p>&copy; 2024 Eagle Schools. All rights reserved.</p> <p>This is an automated message. Please do not reply to this email.</p> <p>Access your result at: <a href="https://eagle-result-checker.vercel.app/login" class="login-link"> https://eagle-result-checker.vercel.app/login </a> </p> </div> </div> </body> </html> """
             send_simple_message(
-                [{"email": "eagleschools@gmail.com"}, {"email": email}],
+                [{"email": email}],
                 f"📚 Your Result is Ready - Eagle Schools",
                 message_body,
             )
@@ -678,6 +692,65 @@ def service_worker():
 @app.route("/offline")
 def offline():
     return render_template("offline.html")
+
+
+# ---------------------- ADMIN: VIEW STUDENT PASSWORDS --------------------
+@app.route("/admin/passwords", methods=["GET"])
+def admin_passwords():
+    # Render the admin page; client-side will prompt for passkey and then authenticate via /admin/passwords/auth
+    return render_template("admin_passwords.html")
+
+
+@app.route("/admin/passwords/auth", methods=["POST"])
+def admin_passwords_auth():
+    # authenticate client-sent passkey and create a session flag
+    data = request.get_json() or {}
+    passkey = data.get("passkey") or request.form.get("passkey")
+    valid_passkey = os.getenv("DEFAULT_PASSKEY", "E4GL35")
+    if not passkey:
+        return jsonify({"error": "Missing passkey"}), 400
+
+    if str(passkey) == str(valid_passkey):
+        session['admin_authenticated'] = True
+        return jsonify({"success": True})
+
+    return jsonify({"error": "Invalid passkey"}), 403
+
+
+@app.route("/admin/passwords/data", methods=["GET"])
+def admin_passwords_data():
+    # Return JSON for paginated student name / exam number / access_key
+    if not session.get('admin_authenticated'):
+        return jsonify({"error": "Unauthorized"}), 403
+
+    db = get_db()
+    try:
+        page = int(request.args.get('page', 1))
+        q = request.args.get('q', '').strip()
+        page_size = 50
+        offset = (page - 1) * page_size
+
+        if q:
+            qlike = f"%{q}%"
+            count_sql = text("SELECT COUNT(*) FROM results WHERE student_name ILIKE :q OR exam_number ILIKE :q")
+            total = db.execute(count_sql, {"q": qlike}).scalar()
+            sql = text("SELECT id, student_name, exam_number, access_key FROM results WHERE student_name ILIKE :q OR exam_number ILIKE :q ORDER BY id ASC LIMIT :limit OFFSET :offset")
+            rows = db.execute(sql, {"q": qlike, "limit": page_size, "offset": offset}).fetchall()
+        else:
+            total = db.execute(text("SELECT COUNT(*) FROM results")).scalar()
+            sql = text("SELECT id, student_name, exam_number, access_key FROM results ORDER BY id ASC LIMIT :limit OFFSET :offset")
+            rows = db.execute(sql, {"limit": page_size, "offset": offset}).fetchall()
+
+        data = [ {"id": r[0], "student_name": r[1], "exam_number": r[2], "access_key": r[3]} for r in rows ]
+        return jsonify({"data": data, "total": total, "page": page, "page_size": page_size})
+    finally:
+        db.close()
+
+
+@app.route("/admin/passwords/logout", methods=["POST"])
+def admin_passwords_logout():
+    session.pop('admin_authenticated', None)
+    return jsonify({"success": True})
 
 
 # ------------------------------------------------
